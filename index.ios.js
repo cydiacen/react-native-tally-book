@@ -15,33 +15,9 @@ import {
     ListView,
     Image,StatusBar
 } from 'react-native';
-class MyView extends Component {
-  _handleBackPress() {
-    this.props.navigator.pop();
-  }
-
-  _handleNextPress(nextRoute) {
-    this.props.navigator.push(nextRoute);
-  }
-
-  render() {
-    const nextRoute = {
-      component: MyView,
-      title: 'Bar That',
-      passProps: { myProp: this.props.myProp+this.props.index,
-        index:this.props.index+1 },
-      rightButtonTitle:this.props.myProp
-    };
-    return(
-        <TouchableOpacity onPress={() => this._handleNextPress(nextRoute)}>
-          <Text style={{marginTop: 200, alignSelf: 'center'}}>
-            See you on the other nav {this.props.myProp}!
-          </Text>
-        </TouchableOpacity>
-    );
-  }
-}
-
+import moment from 'moment';
+import MyView from './addItem';
+import Swipeout from 'react-native-swipeout';
 class TransDate extends Component{
   static propTypes = {
     requestDate:PropTypes.string.isRequired
@@ -52,23 +28,17 @@ class TransDate extends Component{
     this.props.isToday = new Date() == new Date(props.requestDate);
   }
   returnDay(date){
+    date = date.replace(/[-]/g,'/');
     var day = ['日','一','二','三','四','五','六'];
-    if(this.getDateStr(0)==(new Date(date)).toLocaleDateString())return "今天";
-    if(this.getDateStr(-1)==(new Date(date)).toLocaleDateString())return "昨天";
-    return '周'+day[(new Date(date)).getDay()];
+    if(moment().weekday()==moment(date).weekday())return "今天";
+    if(moment().diff(moment(date),'day')<2)return "昨天";
+    return "周"+day[moment(date).weekday()];
   }
   returnTime(date){
-    if(this.getDateStr(0)==(new Date(date)).toLocaleDateString())return (new Date(date)).toTimeString().split(' ')[0].substring(0,5);
-    if(this.getDateStr(-1)==(new Date(date)).toLocaleDateString())return (new Date(date)).toTimeString().split(' ')[0].substring(0,5);
-    return (new Date(date)).toLocaleDateString();
-  }
-  getDateStr(AddDayCount) {
-    var dd = new Date();
-    dd.setDate(dd.getDate()+AddDayCount);//获取AddDayCount天后的日期
-    var y = dd.getFullYear();
-    var m = dd.getMonth()+1;//获取当前月份的日期
-    var d = dd.getDate();
-    return y+"/"+m+"/"+d;
+      date = date.replace(/[-]/g,'/');
+      if(moment().weekday()==moment(date).weekday())return date.split(' ')[1].substring(0,5);
+      if(moment().diff(moment(date),'day')<2)return date.split(' ')[1].substring(0,5);
+      return moment(date).toDate().getMonth()+"-"+moment(date).toDate().getDate();
   }
   render(){
     return (
@@ -79,28 +49,55 @@ class TransDate extends Component{
     );
   }
 }
-
 class MyList extends Component{
   constructor(props) {
     super(props);
     var ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
     this.state = {
-      dataSource: ds.cloneWithRows([{price:1,content:"零食",listDate:"2016-11-6 11:23:32"},
-        {price:9,content:"中餐",listDate:"2016-11-5 20:20:11"},
-        {price:9,content:"中餐",listDate:"2016-10-29 08:23:33"},
-        {price:9,content:"中餐",listDate:"2016-11-5 20:20:11"},
-        {price:9,content:"中餐",listDate:"2016-10-29 08:23:33"},
-        {price:9,content:"中餐",listDate:"2016-11-5 20:20:11"},
-        {price:9,content:"中餐",listDate:"2016-10-29 08:23:33"}]),
+      dataSource: ds.cloneWithRows([{price:1,content:"零食",listDate:"2016-11-07 11:23:32",flag:1},
+        {price:9,content:"中餐",listDate:"2016-11-6 20:20:11",flag:1},
+        {price:9,content:"中餐",listDate:"2016-11-5 08:23:33",flag:0},
+        {price:9,content:"中餐",listDate:"2016-11-4 20:20:11",flag:0},
+        {price:9,content:"中餐",listDate:"2016-11-3 08:23:33",flag:0},
+        {price:9,content:"中餐",listDate:"2016-11-2 20:20:11",flag:0},
+        {price:9,content:"中餐",listDate:"2016-11-1 08:23:33",flag:0}]),
+        scrollEnabled:true
     };
   }
+    //  set scrolling to true/false
+    _allowScroll(scrollEnabled) {
+        this.setState({ scrollEnabled: scrollEnabled });
+    }
+
+    //  set active swipeout item
+    _handleSwipeout(sectionID, rowID) {
+        for (var i = 0; i < rows.length; i++) {
+            if (i != rowID) rows[i].active = false;
+            else rows[i].active = true;
+        }
+        this._updateDataSource(rows);
+    }
+
+    _updateDataSource(data) {
+        this.setState({
+            dataSource: this.state.dataSource.cloneWithRows(data),
+        });
+    }
   render() {
     return (
         <ListView
             dataSource={this.state.dataSource}
+            scrollEnabled={this.state.scrollEnabled}
             renderRow={(rowData) =>
+            <Swipeout
+                left={[{text:"标记",backgroundColor:"#ffbe4e"}]}
+                right={[{text:"删除",backgroundColor:"#ff3939"},{text:"编辑",backgroundColor:"#31ba8a"}]}
+                style={{backgroundColor:"#fff"}}
+                backgroundColor="#fff"
+            >
                 <View style={styles.listItem}>
-                  <View style={{flex:1,flexDirection:"row"}}>
+                    <Image source={require('./img/collect.png')} style={{opacity:rowData.flag,width:20,height:20,marginTop:40,marginLeft:10}}/>
+                  <View style={{flex:0.8,flexDirection:"row"}}>
                     <TransDate requestDate={rowData.listDate}/>
                     <Image style={{backgroundColor:"#cd0200",width:50,height:50,marginTop:25,borderRadius:25}}/>
                   </View>
@@ -110,6 +107,7 @@ class MyList extends Component{
                   </View>
 
                 </View>
+            </Swipeout>
             }
         />
     );
@@ -148,6 +146,7 @@ class NavvyIOS extends Component {
                 tintColor:"#fff",
                 translucent:false,
                 onRightButtonPress: () => this._handleNavigationRequest(),
+                leftButtonIcon:require('./img/collect.png')
               }}
               style={{flex: 1}}
           />
