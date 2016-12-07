@@ -13,11 +13,19 @@ import {
     NavigatorIOS,
     TouchableOpacity,
     ListView,
-    Image,StatusBar
+    Image,StatusBar,AsyncStorage
 } from 'react-native';
 import moment from 'moment';
 import MyView from './addItem';
 import Swipeout from 'react-native-swipeout';
+import datePickEX from "./datePicker";
+import Storage from 'react-native-storage';
+var storage = new Storage({
+    size:1000,
+    storageBackend:AsyncStorage,
+    defaultExpires:null,
+})
+console.log(datePickEX);
 class TransDate extends Component{
   static propTypes = {
     requestDate:PropTypes.string.isRequired
@@ -52,7 +60,7 @@ class TransDate extends Component{
 class MyList extends Component{
   constructor(props) {
     super(props);
-    var ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+    const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
     this.state = {
       dataSource: ds.cloneWithRows([{price:1,content:"零食",listDate:"2016-11-07 11:23:32",flag:1},
         {price:9,content:"中餐",listDate:"2016-11-6 20:20:11",flag:1},
@@ -71,9 +79,8 @@ class MyList extends Component{
 
     //  set active swipeout item
     _handleSwipeout(sectionID, rowID) {
-        for (var i = 0; i < rows.length; i++) {
-            if (i != rowID) rows[i].active = false;
-            else rows[i].active = true;
+        for (let i = 0; i < rows.length; i++) {
+            rows[i].active = i == rowID;
         }
         this._updateDataSource(rows);
     }
