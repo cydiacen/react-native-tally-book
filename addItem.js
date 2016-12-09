@@ -12,7 +12,8 @@ import {
     Animated,
     TextInput,
     TouchableWithoutFeedback,
-    DatePickerIOS
+    DatePickerIOS,
+    findNodeHandle
 } from 'react-native';
 import ImagePicker from './imagePicker';
 let winWidth = require("Dimensions").get("window").width,
@@ -39,7 +40,8 @@ export default class MyView extends Component {
             itemObj:{
                 type:"早餐",
                 tempDate:new Date(),
-                des:"备注..."
+                des:"备注...",
+                price:""
             },
             _type:["早餐","中餐","晚餐","夜宵","零食","娱乐","学习","工作","其他"].map((v)=>{
                 return  <Picker.Item label={v} value={v} />;
@@ -91,15 +93,31 @@ export default class MyView extends Component {
         };
 
         return(
-            <View style={{height:winHeight,position:"relative"}}>
+            <View style={{height:winHeight,position:"relative"}} onStartShouldSetResponderCapture={(e)=>{
+                const target = e.nativeEvent.target;
+                //当前的handle不是价格输入时，让价格输入的input失去焦点
+                if(target!==findNodeHandle(this.refs.priceInput)){
+                    this.refs.priceInput.blur();
+                    console.log(this.refs)
+                }
+            }}>
                 <View style={{width:winWidth,height:70,backgroundColor:"#eee"}}>
-                    <TouchableOpacity onPress={this._pressTitle.bind(this)}>
-                        <Animated.Text style={{fontSize:45,color:"#3c5b75",marginLeft:20, transform:[{translateY:this.state.margin}]}}>0.00</Animated.Text>
-                    </TouchableOpacity>
+                        <TextInput style={{fontSize:45,color:"#3c5b75",marginLeft:20,marginTop:15,width:winWidth-90,height:40}}
+                                   onChangeText ={(value)=>{
+                                       if(value.match(/\./g)&&value.match(/\./g).length ==2){return;}
+                                       this.setState({itemObj:Object.assign(this.state.itemObj,{price:value})}
+                                    )}}
+                                   ref = 'priceInput'
+                                   maxLength={9}
+                                   placeholder={"0.00"}
+                                   placeholderTextColor={"#3c5b75"}
+                                   selectionColor="#eee"
+                                   keyboardType="numeric"
+                                   value={this.state.itemObj.price}
+                                   keyboardAppearance="dark"
+                                   clearButtonMode="while-editing"
+                        />
                     <ImagePicker/>
-                    <View>
-
-                    </View>
                 </View>
                 <Animated.View>
 
@@ -138,6 +156,7 @@ export default class MyView extends Component {
                                         onBlur = {()=>{
                                             this.setState({desDisplay:false})
                                         }}
+                                        ref="desInput"
                                         onChangeText ={(value)=>{this.setState(
                                         {itemObj:Object.assign(this.state.itemObj,{des:value})}
                                     )}} style={{width:winWidth,height:20,fontSize:16,marginTop:5,marginLeft:20,color: "#3c5b75"}} placeholder={"点击输入备注"} placeholderTextColor={"#3c5b75c0"}/>
@@ -150,23 +169,7 @@ export default class MyView extends Component {
                         }
                     </TouchableOpacity>
                 </View>
-                <View style={{flex:1,width:winWidth,height:300,backgroundColor:"#ccc",position:"absolute",bottom:0,flexDirection:"row"}}>
-                    <View style={{flex:1,height:300,backgroundColor:"#3c5b75",flexDirection:"column"}}>
-                        <TouchableOpacity style={{flex:2,justifyContent:"center",alignItems:"center",backgroundColor:"#bbb"}}>
-                            <Text style={{color:"#fff",fontSize: 20,textAlign:"center"}}>
-                                支出
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{flex:3,borderRightWidth:1,borderRightColor:"#999"}}>
-                            <Text style={{color:"#fff",fontSize:20,textAlign:"center",marginTop:50}}>
-                                收入
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                    <View style={{flex:7,height:300,backgroundColor:"#3c5b75"}}>
 
-                    </View>
-                </View>
                 {
                     this.state.slideType?
                     <TouchableWithoutFeedback onPress={this._typePickerSlide.bind(this)}><View style={{position:"absolute", top:0,left:0,width:winWidth,height:winHeight*0.59,zIndex:1,backgroundColor:"#5550"}}/></TouchableWithoutFeedback>:<View/>
