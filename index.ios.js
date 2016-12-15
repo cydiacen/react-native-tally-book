@@ -20,7 +20,9 @@ import MyView from './addItem';
 import Swipeout from 'react-native-swipeout';
 import datePickEX from "./datePicker";
 import Storage from 'react-native-storage';
-var storage = new Storage({
+let winWidth = require("Dimensions").get("window").width,
+    winHeight = require("Dimensions").get("window").height;
+global.storage = new Storage({
     size:1000,
     storageBackend:AsyncStorage,
     defaultExpires:null,
@@ -36,14 +38,15 @@ class TransDate extends Component{
     this.props.isToday = new Date() == new Date(props.requestDate);
   }
   returnDay(date){
-    date = date.replace(/[-]/g,'/');
+    // date = date.replace(/[-]/g,'/');
     var day = ['日','一','二','三','四','五','六'];
     if(moment().weekday()==moment(date).weekday())return "今天";
     if(moment().diff(moment(date),'day')<2)return "昨天";
     return "周"+day[moment(date).weekday()];
   }
   returnTime(date){
-      date = date.replace(/[-]/g,'/');
+      // date = date.replace(/[-]/g,'/');
+      date = moment(date).format('YYYY/MM/DD HH:MM');
       if(moment().weekday()==moment(date).weekday())return date.split(' ')[1].substring(0,5);
       if(moment().diff(moment(date),'day')<2)return date.split(' ')[1].substring(0,5);
       return moment(date).toDate().getMonth()+"-"+moment(date).toDate().getDate();
@@ -62,15 +65,15 @@ class MyList extends Component{
     super(props);
     const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
     this.state = {
-      dataSource: ds.cloneWithRows([{price:1,content:"零食",listDate:"2016-11-07 11:23:32",flag:1},
-        {price:9,content:"中餐",listDate:"2016-11-6 20:20:11",flag:1},
-        {price:9,content:"中餐",listDate:"2016-11-5 08:23:33",flag:0},
-        {price:9,content:"中餐",listDate:"2016-11-4 20:20:11",flag:0},
-        {price:9,content:"中餐",listDate:"2016-11-3 08:23:33",flag:0},
-        {price:9,content:"中餐",listDate:"2016-11-2 20:20:11",flag:0},
-        {price:9,content:"中餐",listDate:"2016-11-1 08:23:33",flag:0}]),
+      dataSource: ds.cloneWithRows([]),
         scrollEnabled:true
     };
+    storage.load({key:"item"}).then(ret=>{
+        this.setState({dataSource:this.state.dataSource.cloneWithRows(ret)})
+        console.log(ret);
+    })
+      // storage.remove({key:"item"});
+      console.log(this.state);
   }
     //  set scrolling to true/false
     _allowScroll(scrollEnabled) {
@@ -92,31 +95,39 @@ class MyList extends Component{
     }
   render() {
     return (
-        <ListView
-            dataSource={this.state.dataSource}
-            scrollEnabled={this.state.scrollEnabled}
-            renderRow={(rowData) =>
-            <Swipeout
-                left={[{text:"标记",backgroundColor:"#ffbe4e"}]}
-                right={[{text:"删除",backgroundColor:"#ff3939"},{text:"编辑",backgroundColor:"#31ba8a"}]}
-                style={{backgroundColor:"#fff"}}
-                backgroundColor="#fff"
-            >
-                <View style={styles.listItem}>
-                    <Image source={require('./img/collect.png')} style={{opacity:rowData.flag,width:20,height:20,marginTop:40,marginLeft:10}}/>
-                  <View style={{flex:0.8,flexDirection:"row"}}>
-                    <TransDate requestDate={rowData.listDate}/>
-                    <Image style={{backgroundColor:"#cd0200",width:50,height:50,marginTop:25,borderRadius:25}}/>
-                  </View>
-                  <View style={{flex:1.5,paddingLeft:20}} >
-                    <Text style={styles.listItemText}>-{parseFloat(rowData.price).toFixed(2) }</Text>
-                    <Text style={[styles.listItemText,{fontSize:13}]}>"{rowData.content }"</Text>
-                  </View>
-
+        <View>
+            {
+                this.state.dataSource._cachedRowCount?
+                <ListView
+                    dataSource={this.state.dataSource}
+                    scrollEnabled={this.state.scrollEnabled}
+                    renderRow={(rowData) =>
+                    <Swipeout
+                        left={[{text:"标记",backgroundColor:"#ffbe4e"}]}
+                        right={[{text:"删除",backgroundColor:"#ff3939"},{text:"编辑",backgroundColor:"#31ba8a"}]}
+                        style={{backgroundColor:"#fff"}}
+                        backgroundColor="#fff"
+                    >
+                        <View style={styles.listItem}>
+                            <Image source={require('./img/collect.png')} style={{opacity:(rowData.flag||0),width:20,height:20,marginTop:40,marginLeft:10}}/>
+                          <View style={{flex:0.8,flexDirection:"row"}}>
+                            <TransDate requestDate={rowData.tempDate}/>
+                            <Image style={{backgroundColor:"#cd0200",width:50,height:50,marginTop:25,borderRadius:25}}/>
+                          </View>
+                          <View style={{flex:0.8,paddingLeft:20}} >
+                            <Text style={styles.listItemText}>-{parseFloat(rowData.price).toFixed(2) }</Text>
+                            <Text style={[styles.listItemText,{fontSize:13}]}>"{rowData.des=="备注..."?rowData.type:rowData.des }"</Text>
+                          </View>
+                          <Text style={{fontSize:13,flex:0.5,marginTop: 10,color:"#999"}}>{rowData.type}</Text>
+                        </View>
+                    </Swipeout>
+                    }
+                />:
+                <View style={{flex:1,backgroundColor:"#efefef",justifyContent: 'center',alignItems: 'center',height:winHeight}}>
+                    <Image style={{width:winWidth*0.5,height:300,marginTop: -200}} source={require("./img/none.png")}/>
                 </View>
-            </Swipeout>
             }
-        />
+        </View>
     );
   }
 }

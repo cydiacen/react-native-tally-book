@@ -1,4 +1,5 @@
-import React, { Component,PropTypes } from 'react';
+// @flow
+import React,{Component,PropTypes } from 'react';
 import {
     AppRegistry,
     StyleSheet,
@@ -13,7 +14,8 @@ import {
     TextInput,
     TouchableWithoutFeedback,
     DatePickerIOS,
-    findNodeHandle
+    findNodeHandle,
+    AsyncStorage
 } from 'react-native';
 import ImagePicker from './imagePicker';
 let winWidth = require("Dimensions").get("window").width,
@@ -25,6 +27,36 @@ export default class MyView extends Component {
 
     _handleNextPress(nextRoute) {
         this.props.navigator.push(nextRoute);
+    }
+    _itemSave(){
+
+        storage.load({key:'item'}).then(ret=>{
+            console.log(ret);
+            if(!ret){
+                this.state.itemObj.id = 1;
+                ret = [this.state.itemObj];
+            }else {
+                if(this.state.itemObj.price==""){
+                    this.state.itemObj.price = 0;
+                }
+                this.state.itemObj.id = ret[0].id+1;
+                ret = [this.state.itemObj,...ret];
+            }
+            storage.save({
+                key:'item',
+                rawData:ret
+            });
+        })
+            .catch((err)=>{
+            console.log(err);
+                this.state.itemObj.id = 1;
+            storage.save({
+                key:'item',
+                rawData:[this.state.itemObj]
+            });
+        })
+        console.log(this.props);
+        this.props.navigator.pop();
     }
     constructor(props, context) {
         super(props, context);
@@ -41,7 +73,8 @@ export default class MyView extends Component {
                 type:"早餐",
                 tempDate:new Date(),
                 des:"备注...",
-                price:""
+                price:"",
+                flag:false
             },
             _type:["早餐","中餐","晚餐","夜宵","零食","娱乐","学习","工作","其他"].map((v)=>{
                 return  <Picker.Item label={v} value={v} />;
@@ -81,7 +114,7 @@ export default class MyView extends Component {
         this.setState({itemObj:Object.assign(this.state.itemObj,{tempDate:this.state.date}) });
     }
     _showDesInput(){
-        this.setState({desDisplay:!this.state.desDisplay})
+        this.setState({desDisplay:!this.state.desDisplay},()=>{this.refs.desInput.focus()});
     }
     render() {
         const nextRoute = {
@@ -91,14 +124,12 @@ export default class MyView extends Component {
                 index:this.props.index+1 },
             rightButtonTitle:this.props.myProp
         };
-
         return(
             <View style={{height:winHeight,position:"relative"}} onStartShouldSetResponderCapture={(e)=>{
                 const target = e.nativeEvent.target;
                 //当前的handle不是价格输入时，让价格输入的input失去焦点
                 if(target!==findNodeHandle(this.refs.priceInput)){
                     this.refs.priceInput.blur();
-                    console.log(this.refs)
                 }
             }}>
                 <View style={{width:winWidth,height:70,backgroundColor:"#eee"}}>
@@ -159,7 +190,7 @@ export default class MyView extends Component {
                                         ref="desInput"
                                         onChangeText ={(value)=>{this.setState(
                                         {itemObj:Object.assign(this.state.itemObj,{des:value})}
-                                    )}} style={{width:winWidth,height:20,fontSize:16,marginTop:5,marginLeft:20,color: "#3c5b75"}} placeholder={"点击输入备注"} placeholderTextColor={"#3c5b75c0"}/>
+                                    )}} style={{width:winWidth,height:20,fontSize:16,marginTop:5,marginLeft:20,color: "#3c5b75"}} placeholder={"输入备注"} placeholderTextColor={"#3c5b75c0"}/>
                                 </View>:
                                 <View style={styles.viewLineText}>
                                     <Text style={[styles.viewLineTextTitle,{marginTop:15,marginBottom:15}]}>
@@ -204,6 +235,12 @@ export default class MyView extends Component {
                         this.setState({date:date})
                     }}/>
                 </Animated.View>
+
+                <TouchableOpacity style={{width:winWidth*0.9,margin: 20,height:30,backgroundColor:"#3c5b75",flexDirection:"row",justifyContent:"center",borderRadius:10,marginTop:80}}
+                                  onPress={this._itemSave.bind(this)}
+                >
+                    <Text style={{color:"#fff",fontSize: 20,paddingTop:5}}>保存</Text>
+                </TouchableOpacity>
             </View>
         );
     }
